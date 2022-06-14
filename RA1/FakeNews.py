@@ -19,7 +19,7 @@ class FakeNews:
         self.text_bag = self.__clean('text')
 
     @staticmethod
-    def __cv(series_data, max_features=25):
+    def __tfidf(series_data, max_features=25):
         vec = TfidfVectorizer(
             max_features=max_features,
             stop_words='english',
