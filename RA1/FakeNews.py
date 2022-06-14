@@ -34,8 +34,7 @@ class FakeNews:
         fake = df[df.fake == 'F'][col]
         questioned = df[df.fake == 'Q'][col]
         vr = self.__tfidf(fake)
-        return pd.DataFrame(vr.transform(questioned).todense(), columns=vr.vocabulary_), \
-               pd.DataFrame(vr.transform(fake).todense(), columns=vr.vocabulary_)
+        return pd.DataFrame(vr.transform(questioned).todense(), columns=vr.vocabulary_)
 
     def __get_news(self):
 
