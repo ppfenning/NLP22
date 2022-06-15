@@ -3,7 +3,6 @@ from dataclasses import dataclass
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 import os
 import pandas as pd
-import pickle
 
 @dataclass
 class FakeNews:
