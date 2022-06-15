@@ -1,8 +1,9 @@
 # some libraries and starter code
-import pandas as pd
-import os
-from sklearn.feature_extraction.text import TfidfVectorizer
 from dataclasses import dataclass
+from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
+import os
+import pandas as pd
+import pickle
 
 @dataclass
 class FakeNews:
@@ -12,37 +13,47 @@ class FakeNews:
     - Clean and transform fake news data
     """
     __base_fold = __file__.rsplit('/', 1)[0]
+    max_features = 25
 
     def __post_init__(self):
-        self.news = self.__get_news()
-        self.headline_bag = self.__clean('title')
-        self.text_bag = self.__clean('text')
+        self.__news = self.__get_news()
+        self.models = {
+            'headline': self.__run_models('title'),
+            'body': self.__run_models('text')
+        }
 
-    @staticmethod
-    def __tfidf(series_data, max_features=25):
-        vec = TfidfVectorizer(
-            max_features=max_features,
+    def __run_models(self, col):
+        fake, quest = self.__split(col)
+        tf = TfidfVectorizer(
+            max_features=self.max_features,
             stop_words='english',
             smooth_idf=True,
             use_idf=True
         )
-        vec.fit(series_data)
-        return vec
+        cv = CountVectorizer(
+            max_features=self.max_features,
+            stop_words='english',
+        )
+        models = []
+        for vec in [tf, cv]:
+            vec.fit(fake)
+            models.append(pd.DataFrame(vec.transform(quest).todense(), columns=vec.vocabulary_))
+        return dict(zip(['TF-IDF', 'CountVector'], models))
 
-    def __clean(self, col):
+    def __split(self, col):
         df = self.news[[col, 'fake']].copy()
-        fake = df[df.fake == 'F'][col]
-        questioned = df[df.fake == 'Q'][col]
-        vr = self.__tfidf(fake)
-        return pd.DataFrame(vr.transform(questioned).todense(), columns=vr.vocabulary_)
+        return df[df.fake == 'F'][col], df[df.fake == 'Q'][col]
+
+    def __join_fold(self, fold):
+        return os.path.join(self.__base_fold, fold)
 
     def __get_news(self):
 
-        data_fold = os.path.join(self.__base_fold, 'data')
+        data_fold = self.__join_fold('data')
         df_lst = []
         for fname in os.listdir(data_fold):
             fpath = os.path.join(data_fold, fname)
-            df = pd.read_excel(fpath, header=None).iloc[:, 1::2]
+            df = pd.read_excel(fpath, header=None, engine='openpyxl').iloc[:, 1::2]
             df_lst.append(df)
         full_df = pd.concat(df_lst)
         full_df.columns = ['date', 'title', 'text', 'url', 'medium']
